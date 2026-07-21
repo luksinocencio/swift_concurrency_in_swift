@@ -3,6 +3,7 @@ import UIKit
 enum NetworkError: Error {
     case badUrl
     case decodingError
+    case invalidId
 }
 
 struct CreditScore: Decodable {
@@ -30,6 +31,10 @@ func calculateAPR(creditScores: [CreditScore]) -> Double {
 }
 
 func getAPR(userId: Int) async throws -> Double {
+//    if userId % 2 == 0 {
+//        throw NetworkError.invalidId
+//    }
+    
     guard let equifaxUrl = Constants.Urls.equifax(userId: userId),
           let experianUrl = Constants.Urls.experian(userId: userId) else {
         throw NetworkError.badUrl
@@ -50,7 +55,48 @@ func getAPR(userId: Int) async throws -> Double {
     return calculateAPR(creditScores: [equifaxCreditScore, experianCreditScore])
 }
 
-Task { 
-    let apr = try await getAPR(userId: 1)
-    print(apr)
+//Task { 
+//    let apr = try await getAPR(userId: 1)
+//    print(apr)
+//}
+
+let ids = [1, 2, 3, 4, 5]
+var invalidIds: [Int] = []
+
+//Task {
+//    for id in ids {
+//        do {
+//            try Task.checkCancellation()
+//            let apr = try await getAPR(userId: id)
+//            print(apr)
+//        } catch {
+//            print(error)
+//            invalidIds.append(id)
+//        }
+//    }
+//    
+//    print(invalidIds)
+//}
+
+func getAPRForAllUsers(ids: [Int]) async throws -> [Int: Double] {
+    var userAPR: [Int: Double] = [:]
+    
+    try await withThrowingTaskGroup(of: (Int, Double).self) { group in
+        for id in ids {
+            group.async {
+                return (id, try await getAPR(userId: id))
+            }
+        }
+        
+        for try await (id, apr) in group {
+            userAPR[id] = apr
+        }
+    }
+    
+    return userAPR
+}
+
+Task {
+    let userAPRs = try await getAPRForAllUsers(ids: ids)
+    print(userAPRs)
 }
