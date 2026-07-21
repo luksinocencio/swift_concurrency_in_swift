@@ -2,9 +2,10 @@ import Foundation
 
 struct RandomImage: Decodable {
     let image: Data
-    let quote: Quote
+    let randomQuote: RandomQuote
 }
 
-struct Quote: Decodable {
-    let content: String
+struct RandomQuote: Decodable {
+    let quote: String
+    let author: String
 }

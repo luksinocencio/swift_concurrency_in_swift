@@ -6,42 +6,24 @@ enum NetworkError: Error {
     case decodingError
 }
 
-class Webservice {
-    func getRandomImages(ids: [Int]) async throws -> [RandomImage] {
-        var randomImages: [RandomImage] = []
-        
-        try await withThrowingTaskGroup(of: (Int, RandomImage).self) { group in
-            for id in ids {
-                group.addTask {
-                    return (id, try await self.getRandomImage(id: id))
-                }
-            }
-            
-            for try await (_, randomImage) in group {
-                print(randomImage)
-                randomImages.append(randomImage)
-            }
-        }
-        
-        return randomImages
-    }
+final class WebService {
+    static let shared: WebService = WebService()
+    
+    private init() { }
     
     func getRandomImage(id: Int) async throws -> RandomImage {
-        guard let url = Constants.Urls.getRandomImageUrl() else {
+        guard let randomImageUrl: URL = Constants.Urls.getRandomImageUrl(),
+              let randomQuotesUrl: URL = Constants.Urls.randomQuotesUrl else {
             throw NetworkError.badUrl
         }
         
-        guard let randomQuoteUrl = Constants.Urls.randomQuoteUrl else {
-            throw NetworkError.badUrl
-        }
+        async let (imageData, _): (Data, URLResponse) = URLSession.shared.data(from: randomImageUrl)
+        async let (quotesData, _): (Data, URLResponse) = URLSession.shared.data(from: randomQuotesUrl)
         
-        async let (imageData, _) = URLSession.shared.data(from: url)
-        async let (randomQuoteData, _) = URLSession.shared.data(from: randomQuoteUrl)
-        
-        guard let quote = try? JSONDecoder().decode(Quote.self, from: try await randomQuoteData) else {
+        guard let quote: RandomQuote = try? await JSONDecoder().decode(RandomQuote.self, from: quotesData) else {
             throw NetworkError.decodingError
         }
         
-        return RandomImage(image: try await imageData, quote: quote)
+        return RandomImage(image: try await imageData, randomQuote: quote)
     }
 }
