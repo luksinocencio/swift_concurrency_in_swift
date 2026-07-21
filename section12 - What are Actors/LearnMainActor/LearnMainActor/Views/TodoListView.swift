@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ContentView: View {
+struct TodoListView: View {
     private var todoListViewModel: TodoListViewModel = TodoListViewModel()
     
     var body: some View {
@@ -17,5 +17,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    TodoListView()
 }

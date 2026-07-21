@@ -4,7 +4,7 @@ import SwiftUI
 struct LearnMainActorApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TodoListView()
         }
     }
 }
