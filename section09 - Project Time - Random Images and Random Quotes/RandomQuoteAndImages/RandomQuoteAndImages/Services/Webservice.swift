@@ -10,15 +10,23 @@ class Webservice {
     func getRandomImages(ids: [Int]) async throws -> [RandomImage] {
         var randomImages: [RandomImage] = []
         
-        for id in ids {
-            let randomImage = try await getRandomImage(id: id)
-            randomImages.append(randomImage)
+        try await withThrowingTaskGroup(of: (Int, RandomImage).self) { group in
+            for id in ids {
+                group.addTask {
+                    return (id, try await self.getRandomImage(id: id))
+                }
+            }
+            
+            for try await (_, randomImage) in group {
+                print(randomImage)
+                randomImages.append(randomImage)
+            }
         }
         
         return randomImages
     }
     
-    private func getRandomImage(id: Int) async throws -> RandomImage {
+    func getRandomImage(id: Int) async throws -> RandomImage {
         guard let url = Constants.Urls.getRandomImageUrl() else {
             throw NetworkError.badUrl
         }
@@ -28,7 +36,7 @@ class Webservice {
         }
         
         async let (imageData, _) = URLSession.shared.data(from: url)
-        async let (randomQuoteData, _) = URLSession.shared.data(from: url)
+        async let (randomQuoteData, _) = URLSession.shared.data(from: randomQuoteUrl)
         
         guard let quote = try? JSONDecoder().decode(Quote.self, from: try await randomQuoteData) else {
             throw NetworkError.decodingError
